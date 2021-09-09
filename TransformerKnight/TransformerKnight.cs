@@ -90,11 +90,32 @@ namespace TransformerKnight
             ModHooks.HeroUpdateHook += HeroUpdate;
             On.HeroController.FaceLeft += FaceLeft;
             On.HeroController.FaceRight += FaceRight;
-            IL.HeroController.Update10 += DONT_CHANGE_MY_LOCALSCALE;
             On.GameManager.EnterHero += StopInfiniteTransitions;
             On.HutongGames.PlayMaker.Actions.SetScale.DoSetScale += DoSetScale;
             UnityEngine.SceneManagement.SceneManager.sceneLoaded += FixSceneSpecificThings;
+            IL.HeroController.Update10 += DONT_CHANGE_MY_LOCALSCALE;
         }
+        
+        // Changing the value that the update function in HeroController uses to "fix" wrong local scales
+        private void DONT_CHANGE_MY_LOCALSCALE(ILContext il)
+        {
+            ILCursor cursor = new ILCursor(il);
+            
+            while (cursor.TryGotoNext(MoveType.After, instr => instr.MatchLdcR4(-1f) || instr.MatchLdcR4(1f) ))  
+            {
+                cursor.EmitDelegate<Func<float>>(GiveTimeScale);
+                cursor.Emit(OpCodes.Mul);
+            }
+        }
+        private static float GiveTimeScale() => currentScale;
+        
+        
+        
+        
+        
+        
+        
+        
 
         private void StopInfiniteTransitions(On.GameManager.orig_EnterHero orig, GameManager self, bool additivegatesearch)
         {
@@ -247,24 +268,7 @@ namespace TransformerKnight
                 self.FinishedEnteringScene();
                 self.FadeSceneIn();
             }
-        }
-
-        // Changing the value that the update function in HeroController uses to "fix" wrong local scales
-        private void DONT_CHANGE_MY_LOCALSCALE(ILContext il)
-        {
-            ILCursor cursor = new ILCursor(il);
-            
-            while (cursor.TryGotoNext(MoveType.After, instr => instr.MatchLdcR4(-1f) || instr.MatchLdcR4(1f) ))  
-            {
-                cursor.EmitDelegate<Func<float>>(GiveTimeScale);
-                cursor.Emit(OpCodes.Mul);
-            }
-        }
-        //ngl idk why this works i thought i needed to check fro + and - but i apparently dont. if it works i dont question
-        private static float GiveTimeScale() => currentScale;
-        
-        
-        
+          
         private void FixSceneSpecificThings(Scene scene,LoadSceneMode mode)
         {
             GameManager.instance.StartCoroutine(FixShinyItemStand(scene));
